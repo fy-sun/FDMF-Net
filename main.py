@@ -112,10 +112,6 @@ def main(cfg: DictConfig):
                                                    worker_init_fn=lambda worker_id: fix_random_seed(
                                                        cfg.seed + worker_id))
 
-    # optimizer = torch.optim.SGD(model.parameters(), lr=cfg.training.learning_rate,
-    #                             weight_decay=cfg.training.weight_decay, momentum=cfg.training.momentum)
-    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=cfg.training.milestones, gamma=0.1)
-
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.training.learning_rate, betas=(0.9, 0.999),
                                   weight_decay=0.01)
     niters_per_epoch = math.ceil(dataset_cfg.num_train_imgs / cfg.training.batch_size)
@@ -210,36 +206,5 @@ def main(cfg: DictConfig):
     logger.info('Testing time: {:.2f} hours'.format((end_test - start_test) / 3600))
 
 
-@hydra.main(config_path=".", config_name="config", version_base=None)
-def main_test(cfg: DictConfig):
-    model_cfg = cfg.model
-    model_cfg.pretrained_backbone = '../../../../../Dataset/pretrained/mit_b4.pth'
-    model = Baseline(cfg=model_cfg, num_classes=cfg.dataset.datasets[cfg.training_dataset].n_classes)
-
-    from torchinfo import summary
-    summary(
-        model, input_size=((1, 3, 256, 256), (1, 1, 256, 256)),  # 批大小 8
-        col_names=('num_params', 'mult_adds')
-    )
-    # print(model)
-    # arr1 = np.random.rand(10, 3, 256, 256)
-    # arr2 = np.random.rand(10, 256, 256)
-    # target = np.random.randint(0, 6, size=(10, 256, 256))
-    # tensor1 = torch.tensor(arr1, dtype=torch.float32)
-    # tensor2 = torch.tensor(arr2, dtype=torch.float32)
-    # target = torch.tensor(target, dtype=torch.long)
-    #
-    # from utils import CrossEntropy2d, dice_loss
-    #
-    # out, MIloss, low_MIloss = model(tensor1, tensor2)
-    # loss = CrossEntropy2d(out, target)
-    # loss_dice = dice_loss(out, target)
-    # print(loss.item())
-    # print(MIloss.item())
-    # print(low_MIloss.item())
-    # print(loss_dice.item())
-
-
 if __name__ == '__main__':
-    main_test()
-    # main()
+    main()

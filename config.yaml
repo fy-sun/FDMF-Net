@@ -3,11 +3,8 @@ cuda_visible_devices: [ 0 ]
 training_model: "Baseline"
 training_dataset: "WHU"
 seed: 42
-#folder: "D:/work/Multi-Modal/Modal-Fusion/Dataset"
-#folder: "/mnt/pfs-gv8sxa/tts/dhg/sunfy/Modal-Fusion/Dataset"
-#folder: "/public/fysun/Multimodal/Modal-Fusion/Dataset"
-#folder: "/data/fysun/Modal-Fusion/Dataset"
-folder: "/public/home/wangzeyu/sfy/Modal-Fusion/Dataset"
+#folder: "/public/fysun/Multimodal/Modal-Fusion/Dataset"  # your dataset path
+
 
 hydra:
   run:
