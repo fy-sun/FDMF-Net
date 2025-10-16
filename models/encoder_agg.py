@@ -14,25 +14,16 @@ from .club import CLUBMean
 from .mine import MINEMean
 
 
-# from engine.logger import get_logger
-
-# logger = get_logger()
-
-
 class DWConv(nn.Module):
-    """
-    Depthwise convolution bloc: input: x with size(B N C); output size (B N C)
-    """
-
     def __init__(self, dim=768):
         super(DWConv, self).__init__()
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1, bias=True, groups=dim)
 
     def forward(self, x, H, W):
         B, N, C = x.shape
-        x = x.permute(0, 2, 1).reshape(B, C, H, W).contiguous()  # B N C -> B C N -> B C H W
+        x = x.permute(0, 2, 1).reshape(B, C, H, W).contiguous()
         x = self.dwconv(x)
-        x = x.flatten(2).transpose(1, 2)  # B C H W -> B N C
+        x = x.flatten(2).transpose(1, 2)
 
         return x
 
@@ -40,9 +31,6 @@ class DWConv(nn.Module):
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
-        """
-        MLP Block: 
-        """
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.fc1 = nn.Linear(in_features, hidden_features)
@@ -143,10 +131,6 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-    """
-    Transformer Block: Self-Attention -> Mix FFN -> OverLap Patch Merging
-    """
-
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, sr_ratio=1):
         super().__init__()
@@ -186,9 +170,6 @@ class Block(nn.Module):
 
 
 class OverlapPatchEmbed(nn.Module):
-    """ Image to Patch Embedding
-    """
-
     def __init__(self, img_size=224, patch_size=7, stride=4, in_chans=3, embed_dim=768):
         super().__init__()
         img_size = to_2tuple(img_size)
@@ -249,7 +230,6 @@ class FrequencySpaticalFusion(nn.Module):
         self.lowSA = SpatialAttention(reduction=reduction)
 
         self.spatial_gate = nn.Conv2d(dim, 1, kernel_size=1)
-        # self.alpha = nn.Parameter(torch.zeros(1))
 
     def forward(self, x, x_high, x_low):
         high_weight = self.highSA(x, x_high)
@@ -260,9 +240,6 @@ class FrequencySpaticalFusion(nn.Module):
 
         gate_map = torch.sigmoid(self.spatial_gate(x))
         out = gate_map * x_high + (1 - gate_map) * x_low
-
-        # a = torch.sigmoid(self.alpha)
-        # out = a * x_high + (1 - a) * x_low
 
         return x_high, x_low, out
 
@@ -642,18 +619,12 @@ def load_dualpath_model(model, model_file, in_chans):
 
 
 def _adapt_first_conv(weight, in_chans: int):
-    """
-    把 [out_c, 3, k, k] 的卷积核适配到任意 in_chans。
-    - in_chans < 3  : 对输入通道求均值再 repeat
-    - in_chans == 3 : 原样返回
-    - in_chans > 3  : 复制 + 截断到指定通道
-    """
     if weight.shape[1] == in_chans:
-        return weight  # 无需修改
+        return weight
 
-    if in_chans < 3:  # e.g. 单波段灰度
+    if in_chans < 3:
         new_weight = weight.mean(dim=1, keepdim=True).repeat(1, in_chans, 1, 1)
-    else:  # e.g. 4/5/6 通道
+    else:
         repeat = math.ceil(in_chans / 3)
         new_weight = weight.repeat(1, repeat, 1, 1)[:, :in_chans, :, :].clone()
     return new_weight

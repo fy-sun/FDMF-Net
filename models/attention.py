@@ -7,10 +7,6 @@ from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
 
 class DWConv(nn.Module):
-    """
-    Depthwise convolution bloc: input: x with size(B N C); output size (B N C)
-    """
-
     def __init__(self, dim=768):
         super(DWConv, self).__init__()
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1, bias=True, groups=dim)
@@ -27,9 +23,6 @@ class DWConv(nn.Module):
 class Mlp_DWConv(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
-        """
-        MLP Block: 
-        """
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.fc1 = nn.Linear(in_features, hidden_features)
@@ -68,9 +61,6 @@ class Mlp_DWConv(nn.Module):
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
-        """
-        MLP Block: 
-        """
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.fc1 = nn.Linear(in_features, hidden_features)
@@ -104,57 +94,6 @@ class Mlp(nn.Module):
         return x
 
 
-# class SelfAttention(nn.Module):
-#     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
-#         super().__init__()
-#         assert dim % num_heads == 0, f"dim {dim} should be divided by num_heads {num_heads}."
-#
-#         self.dim = dim
-#         self.num_heads = num_heads
-#         head_dim = dim // num_heads
-#         self.scale = qk_scale or head_dim ** -0.5
-#
-#         # Linear embedding
-#         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
-#         self.attn_drop = nn.Dropout(attn_drop)
-#         self.proj = nn.Linear(dim, dim)
-#         self.proj_drop = nn.Dropout(proj_drop)
-#
-#         self.apply(self._init_weights)
-#
-#     def _init_weights(self, m):
-#         if isinstance(m, nn.Linear):
-#             trunc_normal_(m.weight, std=.02)
-#             if isinstance(m, nn.Linear) and m.bias is not None:
-#                 nn.init.constant_(m.bias, 0)
-#         elif isinstance(m, nn.LayerNorm):
-#             nn.init.constant_(m.bias, 0)
-#             nn.init.constant_(m.weight, 1.0)
-#         elif isinstance(m, nn.Conv2d):
-#             fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-#             fan_out //= m.groups
-#             m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
-#             if m.bias is not None:
-#                 m.bias.data.zero_()
-#
-#     def forward(self, x):
-#         B, N, C = x.shape
-#
-#         # B N C -> B N num_head C//num_head -> B C//num_head N num_heads
-#         qkv = self.qkv(x).reshape(B, -1, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-#         q, k, v = qkv[0], qkv[1], qkv[2]
-#
-#         attn = (q @ k.transpose(-2, -1)) * self.scale
-#         attn = attn.softmax(dim=-1)
-#         attn = self.attn_drop(attn)
-#
-#         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
-#         x = self.proj(x)
-#         x = self.proj_drop(x)
-#
-#         return x
-
-
 class SelfAttention(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., use_flash=False):
         super().__init__()
@@ -166,7 +105,6 @@ class SelfAttention(nn.Module):
         self.scale = qk_scale or head_dim ** -0.5
         self.use_flash = use_flash
 
-        # Linear embedding
         self.q = nn.Linear(dim, dim, bias=qkv_bias)
         self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
@@ -193,12 +131,11 @@ class SelfAttention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
 
-        # B N C -> B N num_head C//num_head -> B C//num_head N num_heads
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
         kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
 
-        if self.use_flash and x.is_cuda:  # ① FlashAttention-2 / SDPA 路径
+        if self.use_flash and x.is_cuda:
             out = F.scaled_dot_product_attention(  # 自动 1/√d 缩放
                 q, k, v,
                 dropout_p=self.attn_drop.p if self.training else 0.0,
@@ -216,9 +153,6 @@ class SelfAttention(nn.Module):
 
 
 class SelfAttentionBlock(nn.Module):
-    """
-    Transformer Block: Self-Attention -> Mix FFN -> OverLap Patch Merging
-    """
 
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
@@ -228,7 +162,6 @@ class SelfAttentionBlock(nn.Module):
             dim,
             num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale,
             attn_drop=attn_drop, proj_drop=drop)
-        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -296,7 +229,6 @@ class CrossAttention(nn.Module):
     def forward(self, x, y, attn_mask=None):
         B, N, C = x.shape
 
-        # B N C -> B N num_head C//num_head -> B C//num_head N num_heads
         q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
         kv = self.kv(y).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
@@ -319,9 +251,6 @@ class CrossAttention(nn.Module):
 
 
 class CrossAttentionBlock(nn.Module):
-    """
-    Transformer Block: Self-Attention -> Mix FFN -> OverLap Patch Merging
-    """
 
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
@@ -332,7 +261,6 @@ class CrossAttentionBlock(nn.Module):
             dim,
             num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale,
             attn_drop=attn_drop, proj_drop=drop)
-        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)

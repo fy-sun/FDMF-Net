@@ -5,7 +5,6 @@ training_dataset: "WHU"
 seed: 42
 #folder: "/public/fysun/Multimodal/Modal-Fusion/Dataset"  # your dataset path
 
-
 hydra:
   run:
     dir: "./${training_model}_${training_dataset}_${seed}/${now:%Y-%m-%d_%H-%M-%S}"
@@ -106,22 +105,6 @@ dataset:
         7: [ 0, 0, 0 ]          # Undefined (black)
     YESeg:
       name: "YESeg"
-      labels: [ "bare ground", "low vegetation", "trees", "houses", "water", "roads", "others", "background" ]
-      n_classes: 8
-      train_ids: ""
-      test_ids: ""
-      num_train_imgs: 1784
-      palette:
-        0: [ 128, 0, 0 ]      # Class 1 - bare ground
-        1: [ 0, 128, 0 ]        # Class 2 - low vegetation
-        2: [ 128, 128, 0 ]      # Class 3 - trees
-        3: [ 0, 0, 128 ]        # Class 4 - houses
-        4: [ 128, 0, 128 ]       # Class 5 - water
-        5: [ 0, 128, 128 ]      # Class 6 - roads
-        6: [ 128, 128, 128 ]    # Class 7 - others
-        7: [ 0, 0, 0 ]          # Undefined (background)
-    HuNan:
-      name: "HuNan"
       labels: [ "bare ground", "low vegetation", "trees", "houses", "water", "roads", "others", "background" ]
       n_classes: 8
       train_ids: ""

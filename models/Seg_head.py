@@ -3,14 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# from engine.logger import get_logger
-
-# logger = get_logger()
-
 class MLP(nn.Module):
-    """
-    Linear Embedding: 
-    """
 
     def __init__(self, input_dim=2048, embed_dim=768):
         super().__init__()
@@ -60,10 +53,8 @@ class DecoderHead(nn.Module):
         self.linear_pred = nn.Conv2d(embedding_dim, self.num_classes, kernel_size=1)
 
     def forward(self, inputs):
-        # len=4, 1/4,1/8,1/16,1/32
         c1, c2, c3, c4 = inputs
 
-        ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
 
         _c4 = self.linear_c4(c4).permute(0, 2, 1).reshape(n, -1, c4.shape[2], c4.shape[3])
