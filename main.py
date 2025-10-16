@@ -4,7 +4,6 @@ import os
 import time
 
 import hydra
-import numpy as np
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
