@@ -117,10 +117,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
     history = {
         'round': [],
         'train_loss': [],
-        'CE_loss': [],
-        'DICE_loss': [],
-        'MI_loss': [],
-        'low_MI_loss': [],
         'Kappa': [],
         'OA_total': [],
         'MIoU_mean': [],
@@ -138,10 +134,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
         logger.info('Train (epoch {}/{})'.format(epoch, epochs))
         model.train()
         batch_losses = []
-        CE_losses = []
-        DICE_loss = []
-        MI_losses = []
-        lowMI_losses = []
         for batch_idx, (opt, dsm, target) in enumerate(train_loader):
             opt, dsm, target = opt.cuda(), dsm.cuda(), target.cuda()
             optimizer.zero_grad()
@@ -157,18 +149,10 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
                 scheduler.step()
 
             batch_losses.append(loss.item())
-            CE_losses.append(loss_ce.item())
-            DICE_loss.append(loss_dice.item())
-            MI_losses.append(MIloss.item())
-            lowMI_losses.append(low_MIloss.item())
 
             del (opt, target, loss)
 
         epoch_loss = np.mean(batch_losses)
-        epoch_CEloss = np.mean(CE_losses)
-        epoch_DICEloss = np.mean(DICE_loss)
-        epoch_MIloss = np.mean(MI_losses)
-        epoch_lowMIloss = np.mean(lowMI_losses)
 
         if epoch % save_epoch == 0:
             # We validate with the largest possible stride for faster computing
@@ -187,10 +171,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
 
             history['round'].append(epoch)
             history['train_loss'].append(epoch_loss)
-            history['CE_loss'].append(epoch_CEloss)
-            history['DICE_loss'].append(epoch_DICEloss)
-            history['MI_loss'].append(epoch_MIloss)
-            history['low_MI_loss'].append(epoch_lowMIloss)
             history['Kappa'].append(results_val['Kappa'])
 
             history['OA_total'].append(results_val['OA']['total'])
@@ -219,10 +199,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
                 epoch_best = epoch
 
             logger.info('    Training Loss: {}'.format(epoch_loss))
-            logger.info('       CE Loss: {}'.format(epoch_CEloss))
-            logger.info('       DICE Loss: {}'.format(epoch_DICEloss))
-            logger.info('       MI Loss: {}'.format(epoch_MIloss))
-            logger.info('       low MI Loss: {}'.format(epoch_lowMIloss))
             logger.info('    Kappa: {}'.format(results_val["Kappa"]))
             logger.info('    OA: {}'.format(results_val["OA"]))
             logger.info('    F1: {}'.format(results_val["F1"]))
@@ -231,10 +207,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
         else:
             history['round'].append(epoch)
             history['train_loss'].append(epoch_loss)
-            history['CE_loss'].append(epoch_CEloss)
-            history['DICE_loss'].append(epoch_DICEloss)
-            history['MI_loss'].append(epoch_MIloss)
-            history['low_MI_loss'].append(epoch_lowMIloss)
             history['Kappa'].append(0.0)
 
             history['OA_total'].append(0.0)
@@ -250,10 +222,6 @@ def train(dataset_cfg, training_cfg, model, optimizer, scheduler, train_loader, 
                 history['F1_{}'.format(i)].append(0.0)
 
             logger.info('    Training Loss: {}'.format(epoch_loss))
-            logger.info('       CE Loss: {}'.format(epoch_CEloss))
-            logger.info('       DICE Loss: {}'.format(epoch_DICEloss))
-            logger.info('       MI Loss: {}'.format(epoch_MIloss))
-            logger.info('       low MI Loss: {}'.format(epoch_lowMIloss))
 
     logger.info('Best epoch {}, MIoU best: {}'.format(epoch_best, MIoU_best))
 
